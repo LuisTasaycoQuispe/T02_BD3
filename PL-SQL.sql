@@ -27,7 +27,57 @@ CREATE TABLE Person (
 SET SERVEROUTPUT ON;
 
 
--- fUNCIONES
+
+
+-- funciones y parametros
+
+CREATE OR REPLACE FUNCTION agregar_persona(
+    p_document_type CHAR,
+    p_document_number VARCHAR2,
+    p_names VARCHAR2,
+    p_last_names VARCHAR2,
+    p_cellphone_number CHAR,
+    p_email VARCHAR2,
+    p_password VARCHAR2,
+    p_state VARCHAR2 DEFAULT 'A'
+) RETURN NUMBER IS
+    nueva_persona_id NUMBER;
+BEGIN
+    INSERT INTO Person (
+        Document_Type,
+        Document_Number,
+        Names,
+        Last_Names,
+        Cellphone_Number,
+        Email,
+        Password,
+        State
+    ) VALUES (
+        p_document_type,
+        p_document_number,
+        p_names,
+        p_last_names,
+        p_cellphone_number,
+        p_email,
+        p_password,
+        p_state
+    ) RETURNING ID INTO nueva_persona_id;
+    
+    RETURN nueva_persona_id;
+END;
+
+
+
+DECLARE
+    nueva_persona_id NUMBER;
+BEGIN
+    nueva_persona_id := agregar_persona('DNI', '31223412', 'Luis', 'Tasayco', '934234245', 'luis@gmail.com', '213');
+    DBMS_OUTPUT.PUT_LINE('Se agregó una nueva persona con el ID: ' || nueva_persona_id);
+END;
+
+Select * From Person;
+
+
 
 CREATE OR REPLACE FUNCTION Tipo_Mas_Comun_Galpon RETURN VARCHAR2
 IS tipo_mas_comun VARCHAR2(30);
@@ -46,7 +96,36 @@ END;
 SELECT Tipo_Mas_Comun_Galpon() AS Tipo_Mas_Comun FROM DUAL;
 
 
--- Mostrar Datos por Consola
+
+-- Condicionales ------
+BEGIN
+    DBMS_OUTPUT.ENABLE;
+END;
+DECLARE
+    v_person_id NUMBER := 1; 
+    v_new_state VARCHAR2(10) := 'I';
+    v_existing_state VARCHAR2(10);
+BEGIN
+    SELECT State INTO v_existing_state
+    FROM Person
+    WHERE ID = v_person_id;
+    
+    IF v_existing_state <> v_new_state THEN
+        UPDATE Person
+        SET State = v_new_state
+        WHERE ID = v_person_id;
+        
+        IF SQL%ROWCOUNT > 0 THEN
+            DBMS_OUTPUT.PUT_LINE('La persona ha sido actualizada exitosamente a ' || v_new_state || '.');
+        ELSE
+            DBMS_OUTPUT.PUT_LINE('No se encontró una persona con el ID proporcionado.');
+        END IF;
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('La persona ya se encuentra en el estado desactivado.');
+    END IF;
+END;
+
+-- Mostrar Datos por Consola ----------------------
 -- Listar dato por ID
 DECLARE
     v_person_id NUMBER := 1;
@@ -72,6 +151,30 @@ BEGIN
     DBMS_OUTPUT.PUT_LINE('State: ' || v_state);
 END;
 
+
+
+-- Agrupaciones ------------------------
+
+BEGIN
+    DBMS_OUTPUT.ENABLE;
+END;
+
+
+DECLARE
+    v_active_count NUMBER;
+    v_inactive_count NUMBER;
+BEGIN
+    SELECT
+        COUNT(CASE WHEN State = 'A' THEN 1 END) AS active_count,
+        COUNT(CASE WHEN State = 'I' THEN 1 END) AS inactive_count
+    INTO
+        v_active_count,
+        v_inactive_count
+    FROM Person;
+    
+    DBMS_OUTPUT.PUT_LINE('Número de personas activas: ' || v_active_count);
+    DBMS_OUTPUT.PUT_LINE('Número de personas inactivas: ' || v_inactive_count);
+END;
 
 -- Joins
 
@@ -133,4 +236,5 @@ JOIN
 JOIN 
     Person p ON a.person_id = p.ID;
 
-    
+
+
